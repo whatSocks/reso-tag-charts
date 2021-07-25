@@ -4,6 +4,12 @@ Search [Resonate](https://resonate.is/) ([code](https://github.com/resonatecoop/
 
 ![Search Tags for Top Tracks](https://raw.githubusercontent.com/whatSocks/reso-tag-charts/main/img/search.png)
 
+## Todos
+
+- [ ] Add deployment instructions
+- [ ] Add "import data" functionality to admin
+- [ ] Unit tests
+
 ## How to setup locally
 
 ### Install dependencies
