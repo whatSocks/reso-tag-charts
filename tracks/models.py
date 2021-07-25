@@ -11,6 +11,13 @@ class TrackGroup(DjangoNode):
     has_track = RelationshipTo('Track', 'HAS_TRACK')
     owns = RelationshipFrom('RUser', 'OWNS')
 
+    def import_playlists():
+        print("I'm in import_playlists")
+        query = f'''RETURN 1
+
+            '''
+        self.cypher(query)
+
     class Meta:
         app_label = 'tracks'
 
