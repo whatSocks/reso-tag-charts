@@ -42,7 +42,6 @@
                 <thead>
                 <tr>
                     <th>Tag</th>
-                    <th>Top Track ID</th>
                     <th>Top Track Title</th>
                 </tr>
                 </thead>
@@ -80,7 +79,7 @@
                         const t = $("table#results tbody").empty();
                         if (!data || data.length == 0) return;
                         data.forEach(function (track) {
-                            $("<tr><td class='track'>" + track.title + "</td><td>" + track.released + "</td><td>" + track.tagline + "</td></tr>" 
+                            $("<tr><td class='track'>" + track.title + "</td><td>" + track.tagline + "</td></tr>" 
                                 ).appendTo(t)
                                     .click(function() { showTrack(track.released);})
                         });
