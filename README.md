@@ -1,5 +1,9 @@
 # Resonate Tag Charts
 
+Search [Resonate](https://resonate.is/) ([code](https://github.com/resonatecoop/)) tags for top tracks. 
+
+![Search Tags for Top Tracks](https://raw.githubusercontent.com/whatSocks/reso-tag-charts/main/img/search.png)
+
 ## How to setup locally
 
 ### Install dependencies
