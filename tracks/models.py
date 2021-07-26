@@ -24,9 +24,12 @@ class TrackGroup(DjangoNode):
 class Tag(DjangoNode):
     uuid = UniqueIdProperty(primary_key=True)
     name = StringProperty()
+    tg_count = IntegerProperty()
 
     has_tag = RelationshipFrom('TrackGroup', 'HAS_TAG')
     top_track = RelationshipTo('Track', 'TOP_TRACK')
+    related_to = RelationshipTo('Tag', 'RELATED')
+    related_from = RelationshipFrom('Tag', 'RELATED')
 
     def set_top_track(self):
         self.top_track.disconnect_all()

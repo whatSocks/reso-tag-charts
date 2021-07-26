@@ -48,6 +48,7 @@ class TrackGroupAdmin(dj_admin.ModelAdmin):
             WITH 'https://beta.stream.resonate.coop/api/v2/' AS uri
             CALL apoc.load.json(uri + 'trackgroups') // grabbing page 1 of everything else
             YIELD value
+            LIMIT 25
             UNWIND value["data"] as data
             MERGE (u:RUser {uuid:toString(data["user"]["id"])})
             MERGE (t:TrackGroup {uuid:toString(data["id"])})
@@ -74,23 +75,23 @@ class TrackGroupAdmin(dj_admin.ModelAdmin):
 neo_admin.register(TrackGroup, TrackGroupAdmin)
 
 class TagAdmin(dj_admin.ModelAdmin):
-    list_display = ('name','uuid')
+    list_display = ('name','tg_count','uuid')
     ordering = ['name']
-    actions = ['import_tags']
+    actions = ['import_tags','set_tg_count']
 
-    # this is a hack 
+    # this is a hack, do it in code not cypher to better handle errors
     def import_tags(self, response, queryset):
         query = '''
 			MATCH (u:RUser)-[:CREATED]->(t:Track)
-			WITH u.uuid as user_id, count(DISTINCT t) as tracks,"https://beta.stream.resonate.coop/api/v2/" as uri
+			WHERE not u.uuid  in ['7212','4315','4414']
+			WITH u as artist, u.uuid as user_id, count(DISTINCT t) as tracks,"https://beta.stream.resonate.coop/api/v2/" as uri
 			ORDER BY tracks desc
-			LIMIT 25
 			CALL apoc.load.json(uri + 'artists/' + user_id + '/releases') // grabbing all
 			YIELD value
 			UNWIND value["data"] as data
 			UNWIND data["tags"] as tags
 			MERGE (t:TrackGroup {uuid:toString(data["id"])})
-			MERGE (user)-[:OWNS]->(t)
+			MERGE (user:RUser {uuid:toString(user_id)})-[:OWNS]->(t)
 			MERGE (tag:Tag {name:toLower(tags)})
 			MERGE (tag)<-[:HAS_TAG]-(t)
 			SET tag.uuid=apoc.create.uuid()
@@ -100,6 +101,29 @@ class TagAdmin(dj_admin.ModelAdmin):
         db.cypher_query(query)
 
     import_tags.short_description = 'Import Tags (ignores queryset)'
+
+    # this is a hack 
+    def set_tg_count(self, response, queryset):
+        query = '''
+			MATCH (tag:Tag)<-[:HAS_TAG]-(tg:TrackGroup)
+			WITH tag as tag, count(distinct tg) as tg_count
+			SET tag.tg_count=tg_count
+
+			// set tag relationships
+			WITH tag
+			MATCH (tag)-[r:RELATED]-()
+			DELETE r
+
+			WITH tag
+			MATCH (tag)<-[:HAS_TAG]-(tg:TrackGroup)-[:HAS_TAG]->(m:Tag)<-[:HAS_TAG]-(tg2:TrackGroup)
+			WHERE tg <> tg2
+			AND tag.tg_count >= m.tg_count 
+			MERGE (m)-[:RELATED]->(tag)
+            '''
+        db.cypher_query(query)
+
+    set_tg_count.short_description = 'Set tg_count (ignores queryset)'
+
 
 neo_admin.register(Tag, TagAdmin)
 
