@@ -11,9 +11,9 @@ neo_admin.register(RUser, RUserAdmin)
 class TrackGroupAdmin(dj_admin.ModelAdmin):
     list_display = ('title','type','uuid')
     ordering = ['title']
-    actions = ['import_playlists']
+    actions = ['import_playlists','import_trackgroups']
 
-    # this is a hack 
+    # this is a hack - use only for initial import
     def import_playlists(self, response, queryset):
         query = '''
             WITH 'https://beta.stream.resonate.coop/api/v2/' AS uri
@@ -41,6 +41,35 @@ class TrackGroupAdmin(dj_admin.ModelAdmin):
         db.cypher_query(query)
 
     import_playlists.short_description = 'Import Playlists (ignores queryset)'
+
+    # this is a hack - use only for initial import
+    def import_trackgroups(self, response, queryset):
+        query = '''
+            WITH 'https://beta.stream.resonate.coop/api/v2/' AS uri
+            CALL apoc.load.json(uri + 'trackgroups') // grabbing page 1 of everything else
+            YIELD value
+            UNWIND value["data"] as data
+            MERGE (u:RUser {uuid:toString(data["user"]["id"])})
+            MERGE (t:TrackGroup {uuid:toString(data["id"])})
+            MERGE (u)-[:OWNS]->(t)
+            SET t.title = data["title"]
+            SET t.type = data["type"]
+            SET t.slug = data["slug"]
+
+            //part 2 - tracks
+            with uri as uri, toString(data["id"]) as tg_id,t
+            CALL apoc.load.json(uri + 'trackgroups/' + tg_id )
+            yield value
+            UNWIND value["data"]["items"] as items
+            MERGE (u:RUser {uuid:toString(items["track"]["creator_id"])})
+            MERGE (track:Track {uuid:toString(items["track"]["id"])})
+            MERGE (t)-[:HAS_TRACK]->(track)
+            MERGE (track)<-[:CREATED]-(u)
+            SET track.title = items["track"]["title"]
+            '''
+        db.cypher_query(query)
+
+    import_trackgroups.short_description = 'Import Pg 1 (ignores queryset)'
 
 neo_admin.register(TrackGroup, TrackGroupAdmin)
 

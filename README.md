@@ -7,7 +7,7 @@ Search [Resonate](https://resonate.is/) ([code](https://github.com/resonatecoop/
 ## Todos
 
 - [ ] Add deployment instructions
-- [ ] Add "import data" functionality to admin
+- [x] Add "import data" functionality to admin
 - [ ] Unit tests
 
 ## How to setup locally
