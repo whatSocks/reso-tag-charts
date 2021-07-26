@@ -48,7 +48,6 @@ class TrackGroupAdmin(dj_admin.ModelAdmin):
             WITH 'https://beta.stream.resonate.coop/api/v2/' AS uri
             CALL apoc.load.json(uri + 'trackgroups') // grabbing page 1 of everything else
             YIELD value
-            LIMIT 25
             UNWIND value["data"] as data
             MERGE (u:RUser {uuid:toString(data["user"]["id"])})
             MERGE (t:TrackGroup {uuid:toString(data["id"])})
@@ -59,6 +58,7 @@ class TrackGroupAdmin(dj_admin.ModelAdmin):
 
             //part 2 - tracks
             with uri as uri, toString(data["id"]) as tg_id,t
+            LIMIT 25
             CALL apoc.load.json(uri + 'trackgroups/' + tg_id )
             yield value
             UNWIND value["data"]["items"] as items
@@ -85,7 +85,8 @@ class TagAdmin(dj_admin.ModelAdmin):
 			MATCH (u:RUser)-[:CREATED]->(t:Track)
 			WHERE not u.uuid  in ['7212','4315','4414']
 			WITH u as artist, u.uuid as user_id, count(DISTINCT t) as tracks,"https://beta.stream.resonate.coop/api/v2/" as uri
-			ORDER BY tracks desc
+            ORDER BY tracks desc
+            LIMIT 100
 			CALL apoc.load.json(uri + 'artists/' + user_id + '/releases') // grabbing all
 			YIELD value
 			UNWIND value["data"] as data
