@@ -32,7 +32,7 @@ export NEO4J_BOLT_URL=bolt://neo4j:password@host-or-ip:port
 (this also works with Aura)
 
 ```shell
-export NEO4J_BOLT_URL=bolt://neo4j:password@host-or-ip:port
+export NEO4J_BOLT_URL=neo4j+s://neo4j:password@host-or-ip:port
 ```
 
 Run migrations and create your superuser (for the admin, this is using an SQLite database)
