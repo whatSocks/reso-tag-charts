@@ -20,8 +20,102 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### Create the Neo4j database and import your data (TODO)
+### Create your Neo4j database
 
+You can manage your own database, or go to [Neo4j Aura](https://neo4j.com/cloud/aura/) for a fully managed database.
+
+### Do the initial data import
+
+#### Create Constraints
+
+```
+CREATE CONSTRAINT ON (a:Ruser) ASSERT a.uuid IS UNIQUE;
+CREATE CONSTRAINT ON (a:TrackGroup) ASSERT a.uuid IS UNIQUE;
+CREATE CONSTRAINT ON (a:Track) ASSERT a.uuid IS UNIQUE;
+```
+
+#### Add the Playlists (a type of TrackGroup)
+
+```
+WITH 'https://api.resonate.coop/v2/' AS uri
+CALL apoc.load.json(uri + 'trackgroups?type=playlist') // in this example, grabbing listener-generated playlists
+YIELD value
+UNWIND value["data"] as data
+MERGE (u:RUser {uuid:toString(data["user"]["id"])})
+MERGE (t:TrackGroup {uuid:toString(data["id"])})
+MERGE (u)-[:OWNS]->(t)
+SET t.title = data["title"]
+SET t.type = data["type"]
+SET t.slug = data["slug"]
+SET t.tracks_imported = false
+```
+
+#### Add more TrackGroups
+
+```
+WITH 'https://api.resonate.coop/v2/' AS uri
+CALL apoc.load.json(uri + 'trackgroups')
+YIELD value
+WITH toString(value["data"]["user"]["id"]) as user_id, toString(value["data"]["id"]) as tg_id, value["data"]["title"] as title, value["data"]["type"] as type, value["data"]["slug"] as slug, uri as uri
+MERGE (u:RUser {uuid:user_id})
+MERGE (t:TrackGroup {uuid:tg_id})
+MERGE (u)-[:OWNS]->(t)
+SET t.title = title
+SET t.type = type
+SET t.slug = slug
+SET t.tracks_imported = false
+```
+
+#### Add the tracks
+
+```
+CALL apoc.periodic.commit(
+"MATCH (tg:TrackGroup)
+WHERE NOT tg.tracks_imported 
+SET tg.tracks_imported = true
+WITH tg limit $limit
+WITH 'https://api.resonate.coop/v2/' AS uri, tg.uuid as tg_id
+CALL apoc.load.json(uri + 'trackgroups/' + tg_id )
+yield value
+UNWIND value['data']['items'] as items
+MERGE (u:RUser {uuid:toString(items['track']['creator_id'])})
+MERGE (track:Track {uuid:toString(items['track']['id'])})
+MERGE (t)-[:HAS_TRACK]->(track)
+MERGE (track)<-[:CREATED]-(u)
+SET track.title = items['track']['title']
+SET track.tags_imported = false
+RETURN count(*)
+",
+{limit:10});
+```
+
+#### The Tags
+
+```
+CALL apoc.periodic.commit(
+"
+MATCH (u:RUser)-[:CREATED]->(track:Track)
+WHERE not u.uuid  in ['7212','4315','4414'] // bad data
+AND NOT track.tags_imported
+SET track.tags_imported = true
+WITH u as artist, u.uuid as user_id, count(DISTINCT track) as tracks,'https://api.resonate.coop/v2/' as uri
+ORDER BY tracks desc
+LIMIT $limit
+CALL apoc.load.json(uri + 'artists/' + user_id + '/releases') // grabbing all
+YIELD value
+UNWIND value['data'] as data
+UNWIND data['tags'] as tags
+MERGE (t:TrackGroup {uuid:toString(data['id'])})
+MERGE (user:RUser {uuid:toString(user_id)})-[:OWNS]->(t)
+MERGE (tag:Tag {name:toLower(tags)})
+MERGE (tag)<-[:HAS_TAG]-(t)
+SET tag.uuid=apoc.create.uuid()
+SET t.title = data['title']
+SET t.type = data['type']
+RETURN count(*)
+",
+{limit:10});
+```
 
 ### Add export the NEO4J_BOLT_URL
 

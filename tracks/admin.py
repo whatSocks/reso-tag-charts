@@ -16,7 +16,7 @@ class TrackGroupAdmin(dj_admin.ModelAdmin):
     # this is a hack - use only for initial import
     def import_playlists(self, response, queryset):
         query = '''
-            WITH 'https://beta.stream.resonate.coop/api/v2/' AS uri
+            WITH 'https://api.resonate.coop/v2/' AS uri
             CALL apoc.load.json(uri + 'trackgroups?type=playlist') // in this example, grabbing listener-generated playlists
             YIELD value
             UNWIND value["data"] as data
@@ -45,7 +45,7 @@ class TrackGroupAdmin(dj_admin.ModelAdmin):
     # this is a hack - use only for initial import
     def import_trackgroups(self, response, queryset):
         query = '''
-            WITH 'https://beta.stream.resonate.coop/api/v2/' AS uri
+            WITH 'https://api.resonate.coop/v2/' AS uri
             CALL apoc.load.json(uri + 'trackgroups') // grabbing page 1 of everything else
             YIELD value
             UNWIND value["data"] as data
@@ -84,7 +84,7 @@ class TagAdmin(dj_admin.ModelAdmin):
         query = '''
 			MATCH (u:RUser)-[:CREATED]->(t:Track)
 			WHERE not u.uuid  in ['7212','4315','4414']
-			WITH u as artist, u.uuid as user_id, count(DISTINCT t) as tracks,"https://beta.stream.resonate.coop/api/v2/" as uri
+			WITH u as artist, u.uuid as user_id, count(DISTINCT t) as tracks,"https://api.resonate.coop/v2/" as uri
             ORDER BY tracks desc
             LIMIT 100
 			CALL apoc.load.json(uri + 'artists/' + user_id + '/releases') // grabbing all
