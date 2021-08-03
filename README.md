@@ -26,6 +26,8 @@ You can manage your own database, or go to [Neo4j Aura](https://neo4j.com/cloud/
 
 ### Do the initial data import
 
+Before you start, install the APOC plugin.  
+
 #### Create Constraints
 
 ```
@@ -34,7 +36,7 @@ CREATE CONSTRAINT ON (a:TrackGroup) ASSERT a.uuid IS UNIQUE;
 CREATE CONSTRAINT ON (a:Track) ASSERT a.uuid IS UNIQUE;
 ```
 
-#### Add the Playlists (a type of TrackGroup)
+#### Add the first page of Playlists (a type of TrackGroup)
 
 ```
 WITH 'https://api.resonate.coop/v2/' AS uri
@@ -54,15 +56,15 @@ SET t.tracks_imported = false
 
 ```
 WITH 'https://api.resonate.coop/v2/' AS uri
-CALL apoc.load.json(uri + 'trackgroups')
+CALL apoc.load.json(uri + 'trackgroups') // in this example, grabbing listener-generated playlists
 YIELD value
-WITH toString(value["data"]["user"]["id"]) as user_id, toString(value["data"]["id"]) as tg_id, value["data"]["title"] as title, value["data"]["type"] as type, value["data"]["slug"] as slug, uri as uri
-MERGE (u:RUser {uuid:user_id})
-MERGE (t:TrackGroup {uuid:tg_id})
+UNWIND value["data"] as data
+MERGE (u:RUser {uuid:toString(data["user"]["id"])})
+MERGE (t:TrackGroup {uuid:toString(data["id"])})
 MERGE (u)-[:OWNS]->(t)
-SET t.title = title
-SET t.type = type
-SET t.slug = slug
+SET t.title = data["title"]
+SET t.type = data["type"]
+SET t.slug = data["slug"]
 SET t.tracks_imported = false
 ```
 
