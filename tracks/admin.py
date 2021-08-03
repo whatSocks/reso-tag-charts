@@ -13,9 +13,33 @@ class TrackGroupAdmin(dj_admin.ModelAdmin):
     ordering = ['title']
     actions = ['import_playlists','import_trackgroups']
 
+
+    def import_tracks(self):
+        tracks_query = '''
+            CALL apoc.periodic.commit(
+            "MATCH (tg:TrackGroup)
+            WHERE NOT tg.tracks_imported 
+            SET tg.tracks_imported = true
+            WITH tg limit $limit
+            WITH 'https://api.resonate.coop/v2/' AS uri, tg.uuid as tg_id
+            CALL apoc.load.json(uri + 'trackgroups/' + tg_id )
+            yield value
+            UNWIND value['data']['items'] as items
+            MERGE (u:RUser {uuid:toString(items['track']['creator_id'])})
+            MERGE (track:Track {uuid:toString(items['track']['id'])})
+            MERGE (t)-[:HAS_TRACK]->(track)
+            MERGE (track)<-[:CREATED]-(u)
+            SET track.title = items['track']['title']
+            SET track.tags_imported = false
+            RETURN count(*)
+            ",
+            {limit:10});
+            '''
+        db.cypher_query(tracks_query)
+
     # this is a hack - use only for initial import
     def import_playlists(self, response, queryset):
-        query = '''
+        playlists_query = '''
             WITH 'https://api.resonate.coop/v2/' AS uri
             CALL apoc.load.json(uri + 'trackgroups?type=playlist') // in this example, grabbing listener-generated playlists
             YIELD value
@@ -26,27 +50,18 @@ class TrackGroupAdmin(dj_admin.ModelAdmin):
             SET t.title = data["title"]
             SET t.type = data["type"]
             SET t.slug = data["slug"]
-
-            //part 2 - tracks
-            with uri as uri, toString(data["id"]) as tg_id,t
-            CALL apoc.load.json(uri + 'trackgroups/' + tg_id )
-            yield value
-            UNWIND value["data"]["items"] as items
-            MERGE (u:RUser {uuid:toString(items["track"]["creator_id"])})
-            MERGE (track:Track {uuid:toString(items["track"]["id"])})
-            MERGE (t)-[:HAS_TRACK]->(track)
-            MERGE (track)<-[:CREATED]-(u)
-            SET track.title = items["track"]["title"]
+            SET t.tracks_imported = false
             '''
-        db.cypher_query(query)
+        db.cypher_query(playlists_query)
+        self.import_tracks()
 
     import_playlists.short_description = 'Import Playlists (ignores queryset)'
 
     # this is a hack - use only for initial import
     def import_trackgroups(self, response, queryset):
-        query = '''
+        trackgroups_query = '''
             WITH 'https://api.resonate.coop/v2/' AS uri
-            CALL apoc.load.json(uri + 'trackgroups') // grabbing page 1 of everything else
+            CALL apoc.load.json(uri + 'trackgroups?type=playlist') // in this example, grabbing listener-generated playlists
             YIELD value
             UNWIND value["data"] as data
             MERGE (u:RUser {uuid:toString(data["user"]["id"])})
@@ -55,20 +70,10 @@ class TrackGroupAdmin(dj_admin.ModelAdmin):
             SET t.title = data["title"]
             SET t.type = data["type"]
             SET t.slug = data["slug"]
-
-            //part 2 - tracks
-            with uri as uri, toString(data["id"]) as tg_id,t
-            LIMIT 25
-            CALL apoc.load.json(uri + 'trackgroups/' + tg_id )
-            yield value
-            UNWIND value["data"]["items"] as items
-            MERGE (u:RUser {uuid:toString(items["track"]["creator_id"])})
-            MERGE (track:Track {uuid:toString(items["track"]["id"])})
-            MERGE (t)-[:HAS_TRACK]->(track)
-            MERGE (track)<-[:CREATED]-(u)
-            SET track.title = items["track"]["title"]
+            SET t.tracks_imported = false
             '''
-        db.cypher_query(query)
+        db.cypher_query(trackgroups_query)
+        self.import_tracks()
 
     import_trackgroups.short_description = 'Import Pg 1 (ignores queryset)'
 
@@ -82,22 +87,29 @@ class TagAdmin(dj_admin.ModelAdmin):
     # this is a hack, do it in code not cypher to better handle errors
     def import_tags(self, response, queryset):
         query = '''
-			MATCH (u:RUser)-[:CREATED]->(t:Track)
-			WHERE not u.uuid  in ['7212','4315','4414']
-			WITH u as artist, u.uuid as user_id, count(DISTINCT t) as tracks,"https://api.resonate.coop/v2/" as uri
+            CALL apoc.periodic.commit(
+            "
+            MATCH (u:RUser)-[:CREATED]->(track:Track)
+            WHERE not u.uuid  in ['7212','4315','4414'] // bad data
+            AND NOT track.tags_imported
+            SET track.tags_imported = true
+            WITH u as artist, u.uuid as user_id, count(DISTINCT track) as tracks,'https://api.resonate.coop/v2/' as uri
             ORDER BY tracks desc
-            LIMIT 100
-			CALL apoc.load.json(uri + 'artists/' + user_id + '/releases') // grabbing all
-			YIELD value
-			UNWIND value["data"] as data
-			UNWIND data["tags"] as tags
-			MERGE (t:TrackGroup {uuid:toString(data["id"])})
-			MERGE (user:RUser {uuid:toString(user_id)})-[:OWNS]->(t)
-			MERGE (tag:Tag {name:toLower(tags)})
-			MERGE (tag)<-[:HAS_TAG]-(t)
-			SET tag.uuid=apoc.create.uuid()
-			SET t.title = data["title"]
-			SET t.type = data["type"]
+            LIMIT $limit
+            CALL apoc.load.json(uri + 'artists/' + user_id + '/releases') // grabbing all
+            YIELD value
+            UNWIND value['data'] as data
+            UNWIND data['tags'] as tags
+            MERGE (t:TrackGroup {uuid:toString(data['id'])})
+            MERGE (user:RUser {uuid:toString(user_id)})-[:OWNS]->(t)
+            MERGE (tag:Tag {name:toLower(tags)})
+            MERGE (tag)<-[:HAS_TAG]-(t)
+            SET tag.uuid=apoc.create.uuid()
+            SET t.title = data['title']
+            SET t.type = data['type']
+            RETURN count(*)
+            ",
+            {limit:10});
             '''
         db.cypher_query(query)
 
