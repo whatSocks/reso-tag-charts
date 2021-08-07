@@ -66,3 +66,12 @@ class RUser(DjangoNode):
     class Meta:
         app_label = 'tracks'
 
+class Country(DjangoNode):
+    uuid = UniqueIdProperty(primary_key=True)
+    name = StringProperty()
+
+    in_country = RelationshipFrom('RUser', 'IN_COUNTRY')
+
+    class Meta:
+        app_label = 'tracks'
+

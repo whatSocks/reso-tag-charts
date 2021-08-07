@@ -2,7 +2,7 @@ from django.contrib import admin as dj_admin
 from django_neomodel import admin as neo_admin
 from neomodel import db as db
 
-from .models import TrackGroup, Tag, Track, RUser
+from .models import TrackGroup, Tag, Track, RUser, Country
 
 class RUserAdmin(dj_admin.ModelAdmin):
     list_display = ('uuid','uuid')
@@ -144,3 +144,9 @@ class TrackAdmin(dj_admin.ModelAdmin):
     list_display = ('title','uuid')
     ordering = ['title']
 neo_admin.register(Track, TrackAdmin)
+
+class CountryAdmin(dj_admin.ModelAdmin):
+    list_display = ('name','uuid')
+    ordering = ['name']
+
+neo_admin.register(Country, CountryAdmin)
