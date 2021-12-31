@@ -30,6 +30,7 @@ class TrackGroupAdmin(dj_admin.ModelAdmin):
             MERGE (t)-[:HAS_TRACK]->(track)
             MERGE (track)<-[:CREATED]-(u)
             SET track.title = items['track']['title']
+            SET track.raw = items['track']
             SET track.tags_imported = false
             RETURN count(*)
             ",

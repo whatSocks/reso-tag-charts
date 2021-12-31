@@ -79,7 +79,7 @@ WSGI_APPLICATION = 'neotracks.wsgi.application'
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
 
 #Connect to Neo4j Database
-NEOMODEL_NEO4J_BOLT_URL = os.environ.get('NEO4J_BOLT_URL', 'bolt://neo4j:bridges-canister-adviser@54.174.88.253:7687')
+NEOMODEL_NEO4J_BOLT_URL = os.environ.get('NEO4J_BOLT_URL', 'neo4j+s://local:localpw@c0bbe337.databases.neo4j.io:7687')
 
 DATABASES = {
     'default': {

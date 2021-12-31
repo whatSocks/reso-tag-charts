@@ -35,6 +35,7 @@ def graph(request):
 
     return JsonResponse({"nodes": nodes, "links": rels})
 
+# add another version of search that makes a path of tracks, same tags different countries
 
 def search(request):
     try:
@@ -43,8 +44,8 @@ def search(request):
         return JsonResponse([])
 
     #here temporarily, we don't want to do this every time
-    for tags_to_update in Tag.nodes.filter(name__icontains=q):
-        tags_to_update.set_top_track()
+    # for tags_to_update in Tag.nodes.filter(name__icontains=q):
+    #     tags_to_update.set_top_track()
 
     tags = Tag.nodes.filter(name__icontains=q).has(top_track=True)
     return JsonResponse([{

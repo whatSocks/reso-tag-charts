@@ -52,7 +52,7 @@
     </div>
     <div class="col-md-5">     
 <div class="panel panel-default">
-            <div class="panel-heading" id="title">Listen Now</div>
+            <div class="panel-heading" id="title"><a id="listen" target="_blank" href="https://stream.resonate.coop/track/20786">Listen to this track on Resonate</a></div>
             <iframe style="margin:0;border:none;width:100%;height:600px;border: 1px solid #000;" id="player"
             src="https://stream.resonate.coop/embed/track/20786"
             ></iframe>
@@ -72,6 +72,8 @@
     $(function () {
         function showTrack(released) {
             document.getElementById("player").src="https://stream.resonate.coop/embed/track/" + released;
+            document.getElementById("listen").href="https://stream.resonate.coop/track/" + released;
+            console.log(document.getElementById("listen"))
         }
         function search() {
             const query=$("#search").find("input[name=search]").val();
