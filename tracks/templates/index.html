@@ -56,7 +56,7 @@
             <iframe style="margin:0;border:none;width:100%;height:600px;border: 1px solid #000;" id="player"
             src="https://stream.resonate.coop/embed/track/20786"
             ></iframe>
-            This unofficial side project uses data from Resonate. Join as a <b><a href="https://resonate.is/join/" target="_blank">listener</a></b>, or check out the <b><a href="https://github.com/whatSocks/reso-tag-charts" target="_blank">code</a></b>.
+            This unofficial side project uses <b><a href="https://stream.resonate.coop/releases?type=playlist" target="_blank">playlist data</a></b> from Resonate. Join as a <b><a href="https://resonate.is/join/" target="_blank">listener</a></b>, or check out the <b><a href="https://github.com/whatSocks/reso-tag-charts" target="_blank">code</a></b>.
         </div>
     </div>
 <style type="text/css">
@@ -73,7 +73,6 @@
         function showTrack(released) {
             document.getElementById("player").src="https://stream.resonate.coop/embed/track/" + released;
             document.getElementById("listen").href="https://stream.resonate.coop/track/" + released;
-            console.log(document.getElementById("listen"))
         }
         function search() {
             const query=$("#search").find("input[name=search]").val();
