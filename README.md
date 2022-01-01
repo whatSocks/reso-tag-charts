@@ -82,7 +82,7 @@ yield value
 UNWIND value['data']['items'] as items
 MERGE (u:RUser {uuid:toString(items['track']['creator_id'])})
 MERGE (track:Track {uuid:toString(items['track']['id'])})
-MERGE (t)-[:HAS_TRACK]->(track)
+MERGE (tg)-[:HAS_TRACK]->(track)
 MERGE (track)<-[:CREATED]-(u)
 SET track.title = items['track']['title']
 SET track.tags_imported = false
