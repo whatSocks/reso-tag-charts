@@ -91,6 +91,28 @@ RETURN count(*)
 {limit:10});
 ```
 
+#### Double-check track-adding
+
+```
+CALL apoc.periodic.commit(
+"
+match (tg:TrackGroup)-[:HAS_TAG]-(t:Tag)
+where not (tg)-[:HAS_TRACK]-(:Track)
+WITH tg limit $limit
+WITH 'https://api.resonate.coop/v2/' AS uri, tg.uuid as tg_id, tg
+CALL apoc.load.json(uri + 'trackgroups/' + tg_id )
+yield value
+UNWIND value['data']['items'] as items
+MERGE (u:RUser {uuid:toString(items['track']['creator_id'])})
+MERGE (track:Track {uuid:toString(items['track']['id'])})
+MERGE (tg)-[:HAS_TRACK]->(track)
+MERGE (track)<-[:CREATED]-(u)
+SET track.title = items['track']['title']
+SET track.tags_imported = false
+RETURN count(tg)",
+{limit:1});
+```
+
 #### The Tags
 
 ```
@@ -116,8 +138,30 @@ SET t.title = data['title']
 SET t.type = data['type']
 RETURN count(*)
 ",
-{limit:10});
+{limit:5});
 ```
+
+#### Twitter 
+
+```
+CALL apoc.periodic.commit(
+"
+MATCH (u:RUser)
+WHERE u.twitter_checked=false
+WITH u.uuid as user_id, 'https://stream.resonate.coop/api/v2/' as uri, u as artist
+LIMIT $limit
+CALL apoc.load.json(uri + 'artists/' + user_id) // grabbing all
+YIELD value
+UNWIND value['data']['links'] as links
+WITH apoc.data.url(links['href']) as unwound_links, artist as artist,links
+WHERE unwound_links.host='twitter.com'
+SET artist.twitter=toLower(substring(unwound_links.path,1))
+SET artist.twitter_checked=true
+RETURN count(artist)",
+{limit:100});
+
+```
+
 
 ### Add export the NEO4J_BOLT_URL
 
