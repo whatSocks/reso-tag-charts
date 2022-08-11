@@ -1,4 +1,4 @@
-django==3.2.5
+django==3.2.15
 gunicorn==20.1.0
 neo4j-driver==4.3.1
 neomodel==4.0.5
